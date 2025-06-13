@@ -1,29 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { TodoItem } from './TodoItem';
-
+import { useApiService } from '../../api/userApiService';
+import { UserSearch } from './UserSearch';
+import Pagination from '../../components/Paginations/Pagination';
 export const UserPage = () => {
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);  
-  const [error, setError] = useState(null);      
-
-  const API_URL = 'https://run.mocky.io/v3/b7fa8cc4-3bbb-481c-9ab1-e317dfdda71d';
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const { getUsers } = useApiService();
+  const totalPages = 5;
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (params = {}) => {
     setLoading(true);
     try {
-      const response = await axios.get(API_URL);
-      setUsers(response.data);
+      const data = await getUsers(params);
+      setUsers(data);
     } catch (err) {
-      console.error('Error fetching users:', err);
       setError('Failed to load users');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (searchTerm) => {
+    const trimmedTerm = searchTerm.trim();  // loại bỏ khoảng trắng 2 đầu
+    fetchUsers(trimmedTerm ? { username: trimmedTerm } : {}); // nếu không search thì load tất cả
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
   };
 
   if (loading) {
@@ -38,6 +48,8 @@ export const UserPage = () => {
     <div>
       <h2>Danh sách người dùng</h2>
 
+      <UserSearch onSearch={handleSearch} />
+
       <table border="1" cellPadding="10" cellSpacing="0" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
@@ -49,7 +61,7 @@ export const UserPage = () => {
           </tr>
         </thead>
         <tbody>
-        {users.length > 0 ? (
+          {users.length > 0 ? (
             users.map((user, index) => (
               <TodoItem key={index} user={user} />
             ))
@@ -60,6 +72,7 @@ export const UserPage = () => {
           )}
         </tbody>
       </table>
+      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
     </div>
   );
 };
